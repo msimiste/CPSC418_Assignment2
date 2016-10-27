@@ -1,5 +1,6 @@
 import java.net.*;
 import java.io.*;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -14,6 +15,7 @@ public class ServerThread extends Thread
     private int idnum;  //The client's id number.
     
     private String seed;
+    private String destFile;
 	
     /**
      * Constructor, does the usual stuff.
@@ -26,7 +28,9 @@ public class ServerThread extends Thread
 	parent = p;
 	sock = s;
 	idnum = id;
-	//promptForKey();
+	System.out.println("Please enter seed: ");
+	Scanner in = new Scanner(System.in);
+	setSeed(in.next());
     }
 	
     /**
@@ -60,13 +64,16 @@ public class ServerThread extends Thread
 	BufferedReader in = null;
 	String incoming = null;
 	OutputStream out = null;
+	InputStream inStream = null;
 		
 	try {		
 		out = sock.getOutputStream();
-		out.write("Please provide a keyString: ".getBytes());
-		out.flush();		
+		/*out.write("Please provide a keyString: ".getBytes());
+		out.flush();*/		
 	    in = new BufferedReader (new InputStreamReader (sock.getInputStream()));
-	    setSeed(in.readLine());	    
+	    inStream = sock.getInputStream();
+	   
+	   /* setSeed(in.readLine());	   */ 
 	}
 	catch (UnknownHostException e) {
 	    System.out.println ("Unknown host error.");
@@ -79,11 +86,32 @@ public class ServerThread extends Thread
 		
 	/* Try to read from the socket */
 	try {
-	    //incoming = in.readLine ();
+	    //incoming = in.readLinestr ();
+		 System.out.println("Do we ever get here " + seed);
+		//incoming = in.readLine();
+	//	System.out.println("incoming :" +incoming);
+			byte[] buf = new byte[2048];
+			byte[] fileBytes;
+			int count, off = 0;
+			String info ="";			
+			while((count = inStream.read(buf) ) > 0){
+				info = new String(buf,0,count);
+				
+				if(info.contains("#~filestart#~"))
+				{
+					off = info.indexOf("#~filestart~#");
+					String dest = new String(buf, 0, off);
+					off = off + 13;
+					fileBytes = Arrays.copyOfRange(buf, off, count);
+				}
+				else{incoming = info;}
+				
+					
+				
+			}
 			
-			incoming = in.readLine();
     	//Scanner input = new Scanner(System.in);
-    	setSeed(incoming);
+    	//setSeed(incoming);
 	}
 	catch (IOException e) {
 	    if (parent.getFlag())
@@ -94,9 +122,11 @@ public class ServerThread extends Thread
 	    return;
 	}
 		
+	
 	/* See if we've recieved something */
 	while (incoming != null)
 	    {
+		System.out.println("Do we ever get here as well " + seed);
 		/* If the client has sent "exit", instruct the server to
 		 * remove this thread from the vector of active connections.
 		 * Then close the socket and exit.
@@ -156,6 +186,9 @@ public class ServerThread extends Thread
 	    }
     }    
 
+    private void setDestFile(String s){
+    	this.destFile = s;
+    }
     private void setSeed(String k ){
     	this.seed = k;
     }

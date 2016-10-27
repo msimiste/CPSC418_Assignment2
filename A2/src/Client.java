@@ -50,6 +50,7 @@ public class Client {
 		String userinput;
 		PrintWriter out;
 		InputStream in = null;
+		OutputStream outStream = null;
 
 		/* Try to connect to the specified host on the specified port. */
 		try {
@@ -65,13 +66,22 @@ public class Client {
 
 		/* Status info */
 		System.out.println("Connected to " + sock.getInetAddress().getHostAddress() + " on port " + port);
+		
+		try {
+			System.out.println("Please Provide a seed value: ");
+			setSeed(stdIn.readLine());
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 		try {
 			out = new PrintWriter(sock.getOutputStream());
 			in = sock.getInputStream();
-			spitInput(in);
+			outStream = sock.getOutputStream();
+			/*spitInput(in);
 			setSeed(stdIn.readLine());
-			out.flush();
+			out.flush();*/
 			getFileNames();
 		} catch (IOException e) {
 			System.out.println("Could not create output stream.");
@@ -84,9 +94,14 @@ public class Client {
 				/* Echo it to the screen. */
 				// out.println(userinput);
 				// userinput = stdIn.readLine();
-				out.println(userinput);
-				out.flush();
-
+				System.out.println("test");
+				//out.println(userinput);
+				outStream.write(userinput.getBytes());
+				
+				System.out.println("test1");
+				//out.flush();
+				System.out.println("test2");
+				outStream.flush();
 				/*
 				 * Tricky bit. Since Java does short circuiting of logical
 				 * expressions, we need to checkerror to be first so it is
