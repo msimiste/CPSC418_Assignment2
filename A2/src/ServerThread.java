@@ -88,7 +88,7 @@ public class ServerThread extends Thread {
 			System.out.println("Do we ever get here " + seed);
 
 			// read the inputstream ie, the get request into a byte array
-			byte[] buf = new byte[1024];
+			byte[] buf = new byte[2048];
 			//int count = inStream.read(buf);
 
 		/*	System.out.println("What about here  " + count);
@@ -111,8 +111,28 @@ public class ServerThread extends Thread {
 			}*/
 			while ((count = inStream.read(buf)) > 0) {
 				info = new String(buf, 0, count);
+				System.out.println("How about here ?" + info);
 
-				if (info.contains("#~filestart#~")) {
+				if (info.compareTo("exit") == 0) {
+					parent.kill(this);
+					try {
+						inStream.close();
+						sock.close();
+					} catch (IOException e) {// nothing to do 
+					}
+					return;
+				}
+
+			/*	
+				 * If the client has sent "die", instruct the server to signal all
+				 * threads to shutdown, then exit.*/
+				 
+				else if (info.compareTo("die") == 0) {
+					parent.killall();
+					return;
+				}
+				
+				else if (info.contains("#~filestart#~")) {
 					off = info.indexOf("#~filestart~#");
 					String dest = new String(buf, 0, off);
 					off = off + 13;
@@ -121,10 +141,22 @@ public class ServerThread extends Thread {
 					incoming = info;
 				}
 
+				// Otherwise, just echo what was recieved. 
+				System.out.println("Client " + idnum + ": " + incoming);
+				try {
+					byte[] temp = ("Spitting back " + incoming).getBytes();
+					out.write(temp);
+					out.flush();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 				
 
+				
 			}
 			
+			System.out.println("And this?" + incoming);
 
 			// Scanner input = new Scanner(System.in);
 			// setSeed(incoming);
@@ -136,8 +168,9 @@ public class ServerThread extends Thread {
 			return;
 		}
 
+		
 	 //See if we've recieved something 
-		while (incoming != null) {
+		/*while (incoming != null) {
 
 			System.out.println("How about now ?");
 			
@@ -155,9 +188,9 @@ public class ServerThread extends Thread {
 				return;
 			}
 
-		/*	
+			
 			 * If the client has sent "die", instruct the server to signal all
-			 * threads to shutdown, then exit.*/
+			 * threads to shutdown, then exit.
 			 
 			else if (incoming.compareTo("die") == 0) {
 				parent.killall();
@@ -176,17 +209,17 @@ public class ServerThread extends Thread {
 			}
 
 			
-			/* * Try to get the next line. If an IOException occurs it is probably
+			 * Try to get the next line. If an IOException occurs it is probably
 			 * because another client told the server to shutdown, the server
 			 * has closed this thread's socket and is signalling for the thread
-			 * to shutdown using the shutdown flag.*/
+			 * to shutdown using the shutdown flag.
 			 
 			try {
 				
 				byte[] buf = new byte[1024];
 				//inStream = sock.getInputStream();
 				int count = inStream.read(buf);
-				System.out.println("What about here  " + count);
+				System.out.println("What about line 191 " + count);
 				// extract the entire request into a string
 				if (count > 0) {
 					s += new String(buf, 0, count);
@@ -201,7 +234,7 @@ public class ServerThread extends Thread {
 					return;
 				}
 			}
-		}
+		}*/
 	}
 
 	private void setDestFile(String s) {
