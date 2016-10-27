@@ -1,5 +1,6 @@
 import java.net.*;
 import java.io.*;
+import java.util.Scanner;
 
 /**
  * Thread to deal with clients who connect to Server.  Put what you want the
@@ -11,6 +12,8 @@ public class ServerThread extends Thread
     private Socket sock;  //The socket it communicates with the client on.
     private Server parent;  //Reference to Server object for message passing.
     private int idnum;  //The client's id number.
+    
+    private String seed;
 	
     /**
      * Constructor, does the usual stuff.
@@ -23,6 +26,7 @@ public class ServerThread extends Thread
 	parent = p;
 	sock = s;
 	idnum = id;
+	//promptForKey();
     }
 	
     /**
@@ -57,9 +61,12 @@ public class ServerThread extends Thread
 	String incoming = null;
 	OutputStream out = null;
 		
-	try {
+	try {		
+		out = sock.getOutputStream();
+		out.write("Please provide a keyString: ".getBytes());
+		out.flush();		
 	    in = new BufferedReader (new InputStreamReader (sock.getInputStream()));
-	    out = sock.getOutputStream();
+	    setSeed(in.readLine());	    
 	}
 	catch (UnknownHostException e) {
 	    System.out.println ("Unknown host error.");
@@ -72,7 +79,11 @@ public class ServerThread extends Thread
 		
 	/* Try to read from the socket */
 	try {
-	    incoming = in.readLine ();
+	    //incoming = in.readLine ();
+			
+			incoming = in.readLine();
+    	//Scanner input = new Scanner(System.in);
+    	setSeed(incoming);
 	}
 	catch (IOException e) {
 	    if (parent.getFlag())
@@ -114,8 +125,7 @@ public class ServerThread extends Thread
 		/* Otherwise, just echo what was recieved. */
 		System.out.println ("Client " + idnum + ": " + incoming);
 		try {	
-			byte[] temp = ("Spitting back " + incoming).getBytes();
-			
+			byte[] temp = ("Spitting back " + incoming).getBytes();			
 			out.write(temp);
 			out.flush();			
 		} catch (IOException e1) {
@@ -144,5 +154,9 @@ public class ServerThread extends Thread
 			}
 		}
 	    }
+    }    
+
+    private void setSeed(String k ){
+    	this.seed = k;
     }
 }
