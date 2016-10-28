@@ -3,6 +3,8 @@ import java.io.*;
 import java.util.Arrays;
 import java.util.Scanner;
 
+import javax.crypto.spec.SecretKeySpec;
+
 /**
  * Thread to deal with clients who connect to Server. Put what you want the
  * thread to do in it's run() method.
@@ -19,6 +21,8 @@ public class ServerThread extends Thread {
 	private String outFileDelim = "#$#"; 
 	private int fileLength;
 	private DecryptFile decrypter;
+	//private boolean debug = this.parent.getDebug();
+	private int messageLength;
 
 	/**
 	 * Constructor, does the usual stuff.
@@ -38,7 +42,7 @@ public class ServerThread extends Thread {
 		Scanner in = new Scanner(System.in);
 		setSeed(in.next());
 		in.close();
-		decrypter = new DecryptFile(this.seed);
+		//decrypter = new DecryptFile(this.seed);
 	}
 
 	/**
@@ -80,20 +84,22 @@ public class ServerThread extends Thread {
 			out = sock.getOutputStream();
 
 			// read the inputstream ie, the get request into a byte array
-			byte[] buf = new byte[2048];
-			byte[] test = new byte[32];
-			byte[] fileBytes;
+			byte[] buf = new byte[32767];
+			//byte[] test = new byte[32];
+			//byte[] fileBytes;
 			int count, off = 0;
 			String info = "";
 			int byteCounter =0;
 
 			while ((count = inStream.read(buf)) > 0) {
-				byteCounter++;
+				System.out.println("or here: " + count);
 				//byte[] decryptedBytes = decrypter.decryptAES(test);
 				byte[] toBdecrypt = new byte[count];
 				System.arraycopy(buf, 0, toBdecrypt, 0, count);
-				byte[] decryptedBytes = decrypter.decryptAES(toBdecrypt);
-				info = new String(buf, 0, count);
+				//byte[] decryptedBytes = decrypter.decryptAES(toBdecrypt);
+				byte[] decrypted = this.decrypt(toBdecrypt);
+				info = new String(decrypted, 0, decrypted.length);
+				System.out.println("here: " + info);
 				//info = new String(decryptedBytes,0,count);
 				if (info.compareTo("exit") == 0) {
 					parent.kill(this);
@@ -114,15 +120,33 @@ public class ServerThread extends Thread {
 					parent.killall();
 					return;
 				}
+				else if(info.contains("Destination File:")){
+					int start = info.indexOf(":")+1;
+					this.destFile = info.substring(start);
+				/*	if(debug){
+						System.out.println("Stored dest file:"+this.destFile);
+					}*/
+				}
+				else if(info.contains("Message Length:"))
+				{
+					int start = info.indexOf(":")+1;
+					String mLength= info.substring(start);
+					this.messageLength = Integer.parseInt(mLength);
+				}
 				
-				else if (info.contains(fileDelim)){
+			/*	else if (info.contains(fileDelim)){
 					off = info.indexOf(fileDelim);
 					String dest = new String(buf, 0, off);
 					off = off + fileDelim.length();
 					fileBytes = Arrays.copyOfRange(buf, off, count-20);
 					incoming = new String(fileBytes,0,fileBytes.length);
-				} else {
-					incoming = info;
+				} */else {
+					//incoming = info;
+					boolean saveOk = this.saveFile(decrypted);
+					if(saveOk){
+						sendEncryptedAck(out);
+						
+					}
 				}
 
 				// Otherwise, just echo what was recieved.
@@ -146,7 +170,51 @@ public class ServerThread extends Thread {
 			return;
 		}
 	}
+	
+	private void sendEncryptedAck(OutputStream out) {
+		
+		SecretKeySpec key = CryptoUtilities.key_from_seed(this.seed.getBytes());
+		
+		byte[] temp = ("File Saved Succesfully").getBytes();
+		byte[] encryptedAck = CryptoUtilities.encrypt(temp, key);
+		try {
+			out.write(encryptedAck);
+			out.flush();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+						
+			
+		
+	}
 
+	private byte[] decrypt(byte[] toDecrypt){
+		System.out.println("decrypting");
+		SecretKeySpec key = CryptoUtilities.key_from_seed(this.seed.getBytes());
+		byte[] decrypted = CryptoUtilities.decrypt(toDecrypt, key);
+		//byte[] messageHash = CryptoUtilities.extract_message(decrypted);		
+		boolean isValid = CryptoUtilities.verify_hash(decrypted, key);
+		if(isValid)
+		{
+			return CryptoUtilities.extract_message(decrypted);
+		}
+		else return new byte[1];
+	}
+
+	private boolean saveFile(byte[] fileToSave){
+		boolean fileSaved = false;
+		
+		try {
+			FileOutputStream file_out = new FileOutputStream(this.destFile);
+			file_out.write(fileToSave);
+			fileSaved = true;
+		} catch (IOException e) {
+			System.out.println("Trouble saving file");
+			return fileSaved;
+		}
+		return fileSaved;
+	}
 	private void setDestFile(String s) {
 		this.destFile = s;
 	}
@@ -154,4 +222,6 @@ public class ServerThread extends Thread {
 	private void setSeed(String k) {
 		this.seed = k;
 	}
+	
+	
 }

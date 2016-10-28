@@ -14,6 +14,7 @@ public class Server
     private Vector <ServerThread> serverthreads;  //holds the active threads
     private boolean shutdown;  //allows clients to shutdown the server
     private int clientcounter;  //id numbers for the clients
+	private static boolean debug = false;
 
     /**
      * Main method
@@ -24,6 +25,10 @@ public class Server
 	if (args.length != 1) {
 	    System.out.println ("Usage: java Server port#");
 	    return;
+	}
+	else if(args.length == 2)
+	{
+		setDebug(args[1]);
 	}
 
 	try {
@@ -145,5 +150,15 @@ public class Server
 		/* Server Socket is closed, probably because a client told the server to shutdown */
 	    }
 	}
+    }
+    
+    private static void setDebug(String in){
+    	if(in.compareToIgnoreCase("debug")==0){
+    		debug = true;
+    	}
+    }
+    
+    public boolean getDebug(){
+    	return this.debug;
     }
 }
