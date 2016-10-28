@@ -85,11 +85,16 @@ public class ServerThread extends Thread {
 			byte[] fileBytes;
 			int count, off = 0;
 			String info = "";
+			int byteCounter =0;
 
-			while ((count = inStream.read(test)) > 0) {
-				byte[] decryptedBytes = decrypter.decryptAES(buf);
-				//info = new String(buf, 0, count);
-				info = new String(decryptedBytes,0,count);
+			while ((count = inStream.read(buf)) > 0) {
+				byteCounter++;
+				//byte[] decryptedBytes = decrypter.decryptAES(test);
+				byte[] toBdecrypt = new byte[count];
+				System.arraycopy(buf, 0, toBdecrypt, 0, count);
+				byte[] decryptedBytes = decrypter.decryptAES(toBdecrypt);
+				info = new String(buf, 0, count);
+				//info = new String(decryptedBytes,0,count);
 				if (info.compareTo("exit") == 0) {
 					parent.kill(this);
 					try {
