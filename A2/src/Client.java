@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.Arrays;
 import java.util.Scanner;
 
 /**
@@ -9,9 +10,10 @@ import java.util.Scanner;
 public class Client {
 	private Socket sock; // Socket to communicate with.
 	private String seed;
-
 	private String inFile;
 	private String outFile;
+	
+	private SecureFile encrypter;
 
 	/**
 	 * Main method, starts the client.
@@ -48,7 +50,6 @@ public class Client {
 		/* Allows us to get input from the keyboard. */
 		BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
 		String userinput;
-		PrintWriter out;
 		InputStream in = null;
 		OutputStream outStream = null;
 
@@ -66,7 +67,7 @@ public class Client {
 
 		/* Status info */
 		System.out.println("Connected to " + sock.getInetAddress().getHostAddress() + " on port " + port);
-		
+
 		try {
 			System.out.println("Please Provide a seed value: ");
 			setSeed(stdIn.readLine());
@@ -76,31 +77,26 @@ public class Client {
 		}
 
 		try {
-			out = new PrintWriter(sock.getOutputStream());
 			in = sock.getInputStream();
 			outStream = sock.getOutputStream();
-			/*spitInput(in);
-			setSeed(stdIn.readLine());
-			out.flush();*/
 			getFileNames();
+			setEncryption();
+			byte[] encrypted = encrypter.encryptWithAES();
+			//byte[] arr1 = 	glueFiles("#~files~#",encrypted);
+			outStream.write(encrypted);
+			outStream.flush();
 		} catch (IOException e) {
 			System.out.println("Could not create output stream.");
+			return;
+		} catch (Exception e) {
+			System.out.println("Issue with encryption");
 			return;
 		}
 
 		/* Wait for the user to type stuff. */
 		try {
 			while ((userinput = stdIn.readLine()) != null) {
-				/* Echo it to the screen. */
-				// out.println(userinput);
-				// userinput = stdIn.readLine();
-				System.out.println("test");
-				//out.println(userinput);
 				outStream.write(userinput.getBytes());
-				
-				System.out.println("test1");
-				//out.flush();
-				System.out.println("test2");
 				outStream.flush();
 				/*
 				 * Tricky bit. Since Java does short circuiting of logical
@@ -116,15 +112,13 @@ public class Client {
 				 * shutdown. In any of these cases we close our streams and
 				 * exit.
 				 */
-				if ((out.checkError()) || (userinput.compareTo("exit") == 0) || (userinput.compareTo("die") == 0)) {
+				if ((userinput.compareTo("exit") == 0) || (userinput.compareTo("die") == 0)) {
 					System.out.println("Client exiting.");
 					stdIn.close();
-					out.close();
 					sock.close();
 					return;
 				}
 				spitInput(in);
-
 			}
 
 		} catch (IOException e) {
@@ -132,8 +126,8 @@ public class Client {
 			return;
 		}
 	}
-	
-	private void getFileNames(){
+
+	private void getFileNames() {
 		Scanner in = new Scanner(System.in);
 		System.out.println("Enter Source File name :");
 		setInputFileName(in.next());
@@ -142,16 +136,29 @@ public class Client {
 	}
 
 	private void setOutputFileName(String next) {
-		this.outFile = next;		
+		this.outFile = next;
 	}
 
 	private void setInputFileName(String next) {
 		this.inFile = next;
 	}
+	
+	private byte[] glueFiles(String head, byte[] tail){
+		
+		byte[] whole = new byte[head.length() + tail.length];
+		System.arraycopy(head, 0, whole, 0, head.length());
+		System.arraycopy(tail, 0, whole, head.length()+1, tail.length);
+		return whole;
+	}
 
+	/**
+	 * for debugging purposese
+	 * 
+	 * @param in
+	 *            is an inputstream from server
+	 */
 	private void spitInput(InputStream in) {
 		String s = "";
-
 		// read the inputstream ie, the get request into a byte array
 		byte[] buf = new byte[1024];
 		int count = 0;
@@ -167,7 +174,6 @@ public class Client {
 			s += new String(buf, 0, count);
 			System.out.println(s);
 		}
-
 	}
 
 	private void setSeed(String s) {
@@ -176,5 +182,11 @@ public class Client {
 
 	private String getSeed() {
 		return seed;
+	}
+	
+	private void setEncryption(){
+		encrypter = new SecureFile(this.inFile, this.seed);
+		
+		
 	}
 }

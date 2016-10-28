@@ -10,13 +10,13 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 
-public class secureFile {
+public class SecureFile {
 
-	private static String inFile = null;
-	private static String outFile = null;
-	private static String seed = null;
+	private String inFile = null;
+	//private static String outFile = null;
+	private  String seed = null;
 
-	public static void main(String[] args) {
+/*	public static void main(String[] args) {
 
 		inFile = args[0];
 		
@@ -30,30 +30,32 @@ public class secureFile {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}*/
+	
+	public SecureFile(String fileIn, String inputSeed){
+		this.seed = inputSeed;
+		this.inFile = fileIn;
 	}
 
-	private static void setupAES() throws Exception {
+	public byte[] encryptWithAES() throws Exception {
 
 		FileInputStream in_file = null;
 		FileInputStream in_file2 = null;
-		FileOutputStream out_file = null;
-		
-		
+		FileOutputStream out_file = null;		
 
 		byte[] sha_hash = null;
 		byte[] hmac_hash = null;
 		byte[] aes_ciphertext = null;
 		
 		int read_bytes = 0;
-
-
 		try {
 			// open files
 			in_file = new FileInputStream(inFile);
-			out_file = new FileOutputStream(outFile);
+			//out_file = new FileOutputStream(outFile);
 
 			// read file into a byte array
-			byte[] msg = new byte[in_file.available()];
+			byte[] msg = new byte[in_file.available()];			
+			
 			read_bytes = in_file.read(msg);
 			
 			CryptoUtil cryptoUtil = new CryptoUtil(seed);
@@ -73,11 +75,11 @@ public class secureFile {
 			byte[] inFileHash = addHashToFile(msg,hmac_hash);
 			
 			// do AES encryption
-			aes_ciphertext = cryptoUtil.aes_encrypt(inFileHash);
+			aes_ciphertext = cryptoUtil.aes_encrypt(inFileHash);			
 			
-			//write to file
+			/*//write to file
 			out_file.write(aes_ciphertext);
-			out_file.close();
+			out_file.close();*/
 		} catch (Exception e) {
 			System.out.println(e);
 		} finally {
@@ -91,6 +93,7 @@ public class secureFile {
 				in_file2.close();
 			}
 		}
+		return aes_ciphertext;
 	}	
 	
 	private static byte[] addHashToFile(byte[] file, byte[] hash){

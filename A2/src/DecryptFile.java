@@ -9,21 +9,26 @@
 
 import java.io.*;
 
-public class decryptFile {
+public class DecryptFile {
 
 	private static String seed;
-	private static String inFile = null;
+	//private static String inFile = null;
+	private byte[] inFile;
 	private static String outFile = null;
 
-	public static void main(String args[]) throws Exception {
+	
+	public DecryptFile(String inSeed){
+		seed = inSeed;
+	}
+	public byte[] decryptAES(byte[] inFile) throws Exception {
 
-		inFile = args[0];
+		/*inFile = args[0];
 		outFile = inFile.substring(0, inFile.indexOf(".")) + "_OUT" + inFile.substring(inFile.indexOf("."));
 		FileInputStream in_file = null;
 		FileOutputStream out_file = null;
 
 		seed = args[1];
-
+*/
 		CryptoUtil cryptoUtil = new CryptoUtil(seed);
 
 		byte[] hmac_hash = null;
@@ -32,10 +37,11 @@ public class decryptFile {
 
 		// decrypt file
 		try {
-			in_file = new FileInputStream(inFile);
-			out_file = new FileOutputStream(outFile);
-			byte[] ciphtext = new byte[in_file.available()];
-			in_file.read(ciphtext);
+			//in_file = new FileInputStream(inFile);
+			//out_file = new FileOutputStream(outFile);
+			//byte[] ciphtext = new byte[in_file.available()];
+			byte[] ciphtext = inFile;
+			//in_file.read(ciphtext);
 			byte[] decryptedFile =null;
 			byte[] fileNoHash = null;
 			byte[] decryptedHash = null;
@@ -79,24 +85,29 @@ public class decryptFile {
 			
 			if(verify){
 				//write to file
-				out_file.write(fileNoHash);
+				//out_file.write(fileNoHash);
+				return fileNoHash;
 			}
-			
-			tamperedHash = cryptoUtil.hmac_sha1(tamperedFile);
+						
+			/*tamperedHash = cryptoUtil.hmac_sha1(tamperedFile);
 			System.out.println("tampered hmac hash: " + cryptoUtil.toHexString(tamperedHash));
 			
 			verify = compareHash(tamperedHash, decryptedHash);
 			
 			System.out.println("tampered file is OK: "+verify);
+			*/
 			
+			//out_file.close();
 			
-			out_file.close();
 
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
+		byte[] h = new byte[1];
+		return h;	
+	
 	}
     
 	/**

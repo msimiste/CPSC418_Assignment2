@@ -15,6 +15,10 @@ public class ServerThread extends Thread {
 
 	private String seed;
 	private String destFile;
+	private String fileDelim = "#~files~#";
+	private String outFileDelim = "#$#"; 
+	private int fileLength;
+	private DecryptFile decrypter;
 
 	/**
 	 * Constructor, does the usual stuff.
@@ -34,6 +38,7 @@ public class ServerThread extends Thread {
 		Scanner in = new Scanner(System.in);
 		setSeed(in.next());
 		in.close();
+		decrypter = new DecryptFile(this.seed);
 	}
 
 	/**
@@ -62,101 +67,66 @@ public class ServerThread extends Thread {
 	 * be disconnected with "exit" or to shutdown the server with "die".
 	 */
 	public void run() {
-		//BufferedReader in = null;
+		// BufferedReader in = null;
 		String incoming = null;
 		OutputStream out = null;
 		InputStream inStream = null;
 
-		/*
-		 * try { //out = sock.getOutputStream();
-		 * out.write("Please provide a keyString: ".getBytes()); out.flush();
-		 * //in = new BufferedReader (new InputStreamReader
-		 * (sock.getInputStream())); //inStream = sock.getInputStream();
-		 * 
-		 * setSeed(in.readLine()); } catch (UnknownHostException e) {
-		 * System.out.println ("Unknown host error."); return; } catch
-		 * (IOException e) { System.out.println
-		 * ("Could not establish communication."); return; }
-		 */
-
 		String s = "";
 		/* Try to read from the socket */
 		try {
-			// incoming = in.readLinestr ();
+
 			inStream = sock.getInputStream();
 			out = sock.getOutputStream();
-			System.out.println("Do we ever get here " + seed);
 
 			// read the inputstream ie, the get request into a byte array
 			byte[] buf = new byte[2048];
-			//int count = inStream.read(buf);
-
-		/*	System.out.println("What about here  " + count);
-			// extract the entire request into a string
-			if (count > 0) {
-				s += new String(buf, 0, count);
-				incoming = s;
-			}*/
-			
-			
-			// incoming = in.readLine();
-			// System.out.println("incoming :" +incoming);
-			//byte[] buf = new byte[2048];
+			byte[] test = new byte[32];
 			byte[] fileBytes;
 			int count, off = 0;
 			String info = "";
-			/*while ((count = inStream.read(buf)) <= 0) {
-				System.out.println("Do we ever get here as well " + seed);
-				inStream = sock.getInputStream();
-			}*/
-			while ((count = inStream.read(buf)) > 0) {
-				info = new String(buf, 0, count);
-				System.out.println("How about here ?" + info);
 
+			while ((count = inStream.read(test)) > 0) {
+				byte[] decryptedBytes = decrypter.decryptAES(buf);
+				//info = new String(buf, 0, count);
+				info = new String(decryptedBytes,0,count);
 				if (info.compareTo("exit") == 0) {
 					parent.kill(this);
 					try {
 						inStream.close();
 						sock.close();
-					} catch (IOException e) {// nothing to do 
+					} catch (IOException e) {// nothing to do
 					}
 					return;
 				}
 
-			/*	
-				 * If the client has sent "die", instruct the server to signal all
-				 * threads to shutdown, then exit.*/
-				 
+				/*
+				 * If the client has sent "die", instruct the server to signal
+				 * all threads to shutdown, then exit.
+				 */
+
 				else if (info.compareTo("die") == 0) {
 					parent.killall();
 					return;
 				}
 				
-				else if (info.contains("#~filestart#~")) {
-					off = info.indexOf("#~filestart~#");
+				else if (info.contains(fileDelim)){
+					off = info.indexOf(fileDelim);
 					String dest = new String(buf, 0, off);
-					off = off + 13;
-					fileBytes = Arrays.copyOfRange(buf, off, count);
+					off = off + fileDelim.length();
+					fileBytes = Arrays.copyOfRange(buf, off, count-20);
+					incoming = new String(fileBytes,0,fileBytes.length);
 				} else {
 					incoming = info;
 				}
 
-				// Otherwise, just echo what was recieved. 
+				// Otherwise, just echo what was recieved.
 				System.out.println("Client " + idnum + ": " + incoming);
-				try {
-					byte[] temp = ("Spitting back " + incoming).getBytes();
-					out.write(temp);
-					out.flush();
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
 				
-
-				
-			}
-			
-			System.out.println("And this?" + incoming);
+				byte[] temp = ("Spitting back " + incoming).getBytes();
+				out.write(temp);
+				out.flush();				
+			}			
 
 			// Scanner input = new Scanner(System.in);
 			// setSeed(incoming);
@@ -166,75 +136,10 @@ public class ServerThread extends Thread {
 				return;
 			}
 			return;
+		} catch (Exception e1) {
+			System.out.println("Decryption issues:");
+			return;
 		}
-
-		
-	 //See if we've recieved something 
-		/*while (incoming != null) {
-
-			System.out.println("How about now ?");
-			
-			// * If the client has sent "exit", instruct the server to remove this
-			// * thread from the vector of active connections. Then close the
-			 //* socket and exit.
-			 
-			if (incoming.compareTo("exit") == 0) {
-				parent.kill(this);
-				try {
-					inStream.close();
-					sock.close();
-				} catch (IOException e) {// nothing to do 
-				}
-				return;
-			}
-
-			
-			 * If the client has sent "die", instruct the server to signal all
-			 * threads to shutdown, then exit.
-			 
-			else if (incoming.compareTo("die") == 0) {
-				parent.killall();
-				return;
-			}
-
-			// Otherwise, just echo what was recieved. 
-			System.out.println("Client " + idnum + ": " + incoming);
-			try {
-				byte[] temp = ("Spitting back " + incoming).getBytes();
-				out.write(temp);
-				out.flush();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-
-			
-			 * Try to get the next line. If an IOException occurs it is probably
-			 * because another client told the server to shutdown, the server
-			 * has closed this thread's socket and is signalling for the thread
-			 * to shutdown using the shutdown flag.
-			 
-			try {
-				
-				byte[] buf = new byte[1024];
-				//inStream = sock.getInputStream();
-				int count = inStream.read(buf);
-				System.out.println("What about line 191 " + count);
-				// extract the entire request into a string
-				if (count > 0) {
-					s += new String(buf, 0, count);
-					incoming = s;
-				}
-			} catch (IOException e) {
-				if (parent.getFlag()) {
-					System.out.println("shutting down.");
-					return;
-				} else {
-					System.out.println("IO Error.");
-					return;
-				}
-			}
-		}*/
 	}
 
 	private void setDestFile(String s) {
