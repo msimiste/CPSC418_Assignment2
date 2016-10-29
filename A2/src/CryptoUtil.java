@@ -167,7 +167,7 @@ public class CryptoUtil {
 	 * http://java.sun.com/j2se
 	 * /1.4.2/docs/guide/security/jce/JCERefGuide.html#HmacEx
 	 */
-	public String toHexString(byte[] block) {
+	public static String toHexString(byte[] block) {
 		StringBuffer buf = new StringBuffer();
 
 		int len = block.length;
@@ -187,7 +187,7 @@ public class CryptoUtil {
 	 * http://java.sun.com/j2se/1.4.2/docs/guide/security/jce/JCERefGuide.html
 	 * #HmacEx
 	 */
-	private void byte2hex(byte b, StringBuffer buf) {
+	public static void byte2hex(byte b, StringBuffer buf) {
 		char[] hexChars = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 				'A', 'B', 'C', 'D', 'E', 'F' };
 		int high = ((b & 0xf0) >> 4);

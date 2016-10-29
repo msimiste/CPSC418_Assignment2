@@ -17,6 +17,7 @@ public class Client {
 
 	private SecureFile encrypter;
 	private SecretKeySpec key;
+	private int messageLength;
 
 	/**
 	 * Main method, starts the client.
@@ -86,15 +87,23 @@ public class Client {
 			// setEncryption();
 			// byte[] encrypted = encrypter.encryptWithAES();
 			// byte[] arr1 = glueFiles("#~files~#",encrypted);
-			encryptSendMessage(outStream, ("Destination File:" + this.outFile).getBytes());
-			// outStream.write(encrypted);
-			outStream.flush();
 			byte[] plainFile = this.getFileInBytes();
-			encryptSendMessage(outStream,plainFile);
-			//outStream.write(plainFile);
-			outStream.flush();
-			/*encryptSendMessage(outStream, ("Destination File:" + this.outFile).getBytes());
-			outStream.flush();*/
+			encryptOnly(plainFile);
+			//String len = plainFile.length + "";					
+			encryptSendMessage(outStream, ("Destination File:" + this.outFile).getBytes());
+			encryptSendMessage(outStream, ("Message Length:" + this.messageLength).getBytes());	
+			encryptSendMessage(outStream, plainFile);
+			//outStream.flush();
+			// outStream.write(encrypted);
+			// outStream.flush();
+
+			
+			// outStream.write(plainFile);
+			// outStream.flush();
+			/*
+			 * encryptSendMessage(outStream, ("Destination File:" +
+			 * this.outFile).getBytes()); outStream.flush();
+			 */
 		} catch (IOException e) {
 			System.out.println("Could not create output stream.");
 			return;
@@ -154,7 +163,18 @@ public class Client {
 		return fileInBytes;
 	}
 
-	private void encryptSendMessage(OutputStream out, byte[] message) {
+	private void encryptOnly(byte[] message) {
+		// get key
+		this.key = CryptoUtilities.key_from_seed(this.seed.getBytes());
+		// hash message and append hash
+		byte[] hashedMessage = CryptoUtilities.append_hash(message, key);
+		// encrypt
+		byte[] encryptedMessage = CryptoUtilities.encrypt(hashedMessage, key);
+		
+		this.messageLength = encryptedMessage.length;
+	}
+
+	private void encryptSendMessage(OutputStream out, byte[] message) throws InterruptedException {
 
 		// get key
 		this.key = CryptoUtilities.key_from_seed(this.seed.getBytes());
@@ -166,6 +186,8 @@ public class Client {
 		try {
 			out.write(encryptedMessage);
 			out.flush();
+			System.out.println("Sent Bytes = " + encryptedMessage.length);
+			Thread.sleep(100);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -204,42 +226,35 @@ public class Client {
 	 *            is an inputstream from server
 	 */
 	private void spitInput(InputStream in) {
-	/*	String s = "";
+		/*
+		 * String s = ""; // read the inputstream ie, the get request into a
+		 * byte array byte[] buf = new byte[1024]; int count = 0; try { count =
+		 * in.read(buf); } catch (IOException e) { // TODO Auto-generated catch
+		 * block e.printStackTrace(); }
+		 * 
+		 * // extract the entire request into a string if (count > 0) { s += new
+		 * String(buf, 0, count); System.out.println(s); }
+		 */
+
 		// read the inputstream ie, the get request into a byte array
-		byte[] buf = new byte[1024];
-		int count = 0;
+		byte[] buf = new byte[32767];
+		int count, off = 0;
+		String info = "";
+		int byteCounter = 0;
+
 		try {
-			count = in.read(buf);
+			while ((count = in.read(buf)) > 0) {
+				System.out.println("Decrypting ack message: " + count);
+				byte[] toBdecrypt = new byte[count];
+				System.arraycopy(buf, 0, toBdecrypt, 0, count);
+				byte[] decrypted = this.decrypt(toBdecrypt);
+				info = new String(decrypted, 0, decrypted.length);
+
+			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
-		// extract the entire request into a string
-		if (count > 0) {
-			s += new String(buf, 0, count);
-			System.out.println(s);
-		}*/
-		
-		// read the inputstream ie, the get request into a byte array
-					byte[] buf = new byte[32767];
-					int count, off = 0;
-					String info = "";
-					int byteCounter =0;
-
-					try {
-						while ((count = in.read(buf)) > 0) {
-							System.out.println("Decrypting ack message: " + count);							
-							byte[] toBdecrypt = new byte[count];
-							System.arraycopy(buf, 0, toBdecrypt, 0, count);							
-							byte[] decrypted = this.decrypt(toBdecrypt);
-							info = new String(decrypted, 0, decrypted.length);	
-							
-						}
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
 	}
 
 	private void setSeed(String s) {
@@ -254,30 +269,31 @@ public class Client {
 		encrypter = new SecureFile(this.inFile, this.seed);
 
 	}
-	
-	private byte[] getFileInBytes(){
+
+	private byte[] getFileInBytes() {
 		byte[] returnFile = new byte[1];
 		try {
 			FileInputStream file_in = new FileInputStream(this.inFile);
 			returnFile = new byte[file_in.available()];
+			file_in.read(returnFile);
 			file_in.close();
 		} catch (FileNotFoundException e) {
-			System.out.println("Cant find the input file:");			
+			System.out.println("Cant find the input file:");
 		} catch (IOException e) {
 			System.out.println("IO Problem in getFileInBytes");
 		}
 		return returnFile;
 	}
-	private byte[] decrypt(byte[] toDecrypt){
+
+	private byte[] decrypt(byte[] toDecrypt) {
 		System.out.println("decrypting");
 		SecretKeySpec key = CryptoUtilities.key_from_seed(this.seed.getBytes());
 		byte[] decrypted = CryptoUtilities.decrypt(toDecrypt, key);
-		//byte[] messageHash = CryptoUtilities.extract_message(decrypted);		
+		// byte[] messageHash = CryptoUtilities.extract_message(decrypted);
 		boolean isValid = CryptoUtilities.verify_hash(decrypted, key);
-		if(isValid)
-		{
+		if (isValid) {
 			return CryptoUtilities.extract_message(decrypted);
-		}
-		else return new byte[1];
+		} else
+			return new byte[1];
 	}
 }
