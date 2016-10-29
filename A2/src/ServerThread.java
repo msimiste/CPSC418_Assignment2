@@ -17,11 +17,8 @@ public class ServerThread extends Thread {
 
 	private String seed;
 	private String destFile;
-	private String fileDelim = "#~files~#";
-	private String outFileDelim = "#$#";
-	private int fileLength;
-	private DecryptFile decrypter;
-	// private boolean debug = this.parent.getDebug();
+	
+	private boolean debug ;
 	private int messageLength;
 	byte[] messageArr;
 	int briancounter = 0;

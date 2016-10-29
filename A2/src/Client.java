@@ -14,8 +14,6 @@ public class Client {
 	private String seed;
 	private String inFile;
 	private String outFile;
-
-	private SecureFile encrypter;
 	private SecretKeySpec key;
 	private int messageLength;
 
@@ -84,26 +82,11 @@ public class Client {
 			in = sock.getInputStream();
 			outStream = sock.getOutputStream();
 			getFileNames();
-			// setEncryption();
-			// byte[] encrypted = encrypter.encryptWithAES();
-			// byte[] arr1 = glueFiles("#~files~#",encrypted);
 			byte[] plainFile = this.getFileInBytes();
 			encryptOnly(plainFile);
-			//String len = plainFile.length + "";					
 			encryptSendMessage(outStream, ("Destination File:" + this.outFile).getBytes());
-			encryptSendMessage(outStream, ("Message Length:" + this.messageLength).getBytes());	
+			encryptSendMessage(outStream, ("Message Length:" + this.messageLength).getBytes());
 			encryptSendMessage(outStream, plainFile);
-			//outStream.flush();
-			// outStream.write(encrypted);
-			// outStream.flush();
-
-			
-			// outStream.write(plainFile);
-			// outStream.flush();
-			/*
-			 * encryptSendMessage(outStream, ("Destination File:" +
-			 * this.outFile).getBytes()); outStream.flush();
-			 */
 		} catch (IOException e) {
 			System.out.println("Could not create output stream.");
 			return;
@@ -112,68 +95,19 @@ public class Client {
 			return;
 		}
 
-	/*	 Wait for the user to type stuff. 
-		try {
-			while ((userinput = stdIn.readLine()) != null) {
-				outStream.write(userinput.getBytes());
-				outStream.flush();
-				
-				 * Tricky bit. Since Java does short circuiting of logical
-				 * expressions, we need to checkerror to be first so it is
-				 * always executes. Check error flushes the outputstream, which
-				 * we need to do every time after the user types something,
-				 * otherwise, Java will wait for the send buffer to fill up
-				 * before actually sending anything. See PrintWriter.flush(). If
-				 * checkerror has reported an error, that means the last packet
-				 * was not delivered and the server has disconnected, probably
-				 * because another client has told it to shutdown. Then we check
-				 * to see if the user has exitted or asked the server to
-				 * shutdown. In any of these cases we close our streams and
-				 * exit.
-				 
-				if ((userinput.compareTo("exit") == 0) || (userinput.compareTo("die") == 0)) {
-					System.out.println("Client exiting.");
-					stdIn.close();
-					sock.close();
-					return;
-				}
-				//spitInput(in);
-			}
+		//spitInput(in);
 
-		} catch (IOException e) {
-			System.out.println("Could not read from input.");
-			e.printStackTrace();
-			return;
-		}*/
-	}
-
-	private byte[] messageToBytes(String fileName) {
-		byte[] fileInBytes = new byte[10];
-		try {
-			FileInputStream in_file = new FileInputStream(fileName);
-			fileInBytes = new byte[in_file.available()];
-
-		} catch (FileNotFoundException e) {
-			System.out.println("The file does not exist");
-			return fileInBytes;
-
-		} catch (IOException e) {
-			System.out.println("IO Error");
-			return fileInBytes;
-		}
-		return fileInBytes;
 	}
 
 	private void encryptOnly(byte[] message) {
 		byte[] temp = new byte[message.length];
-		 System.arraycopy(message, 0, temp, 0, temp.length);
+		System.arraycopy(message, 0, temp, 0, temp.length);
 		// get key
 		this.key = CryptoUtilities.key_from_seed(this.seed.getBytes());
 		// hash message and append hash
 		byte[] hashedMessage = CryptoUtilities.append_hash(temp, key);
 		// encrypt
 		byte[] encryptedMessage = CryptoUtilities.encrypt(hashedMessage, key);
-		
 		this.messageLength = encryptedMessage.length;
 	}
 
@@ -215,14 +149,6 @@ public class Client {
 		this.inFile = next;
 	}
 
-	private byte[] glueFiles(String head, byte[] tail) {
-
-		byte[] whole = new byte[head.length() + tail.length];
-		System.arraycopy(head, 0, whole, 0, head.length());
-		System.arraycopy(tail, 0, whole, head.length() + 1, tail.length);
-		return whole;
-	}
-
 	/**
 	 * for debugging purposese
 	 * 
@@ -230,15 +156,6 @@ public class Client {
 	 *            is an inputstream from server
 	 */
 	private void spitInput(InputStream in) {
-		/*
-		 * String s = ""; // read the inputstream ie, the get request into a
-		 * byte array byte[] buf = new byte[1024]; int count = 0; try { count =
-		 * in.read(buf); } catch (IOException e) { // TODO Auto-generated catch
-		 * block e.printStackTrace(); }
-		 * 
-		 * // extract the entire request into a string if (count > 0) { s += new
-		 * String(buf, 0, count); System.out.println(s); }
-		 */
 
 		// read the inputstream ie, the get request into a byte array
 		byte[] buf = new byte[32767];
@@ -253,7 +170,7 @@ public class Client {
 				System.arraycopy(buf, 0, toBdecrypt, 0, count);
 				byte[] decrypted = this.decrypt(toBdecrypt);
 				info = new String(decrypted, 0, decrypted.length);
-
+				System.out.println("Ack message = " + info);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -265,22 +182,13 @@ public class Client {
 		seed = s;
 	}
 
-	private String getSeed() {
-		return seed;
-	}
-
-	private void setEncryption() {
-		encrypter = new SecureFile(this.inFile, this.seed);
-
-	}
-
 	private byte[] getFileInBytes() {
 		byte[] returnFile = new byte[1];
 		try {
 			FileInputStream file_in = new FileInputStream(this.inFile);
 			returnFile = new byte[file_in.available()];
 			file_in.read(returnFile);
-			/*file_in.close();*/
+			/* file_in.close(); */
 		} catch (FileNotFoundException e) {
 			System.out.println("Cant find the input file:");
 		} catch (IOException e) {
