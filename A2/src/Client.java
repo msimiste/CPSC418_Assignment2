@@ -112,12 +112,12 @@ public class Client {
 			return;
 		}
 
-		/* Wait for the user to type stuff. */
+	/*	 Wait for the user to type stuff. 
 		try {
 			while ((userinput = stdIn.readLine()) != null) {
 				outStream.write(userinput.getBytes());
 				outStream.flush();
-				/*
+				
 				 * Tricky bit. Since Java does short circuiting of logical
 				 * expressions, we need to checkerror to be first so it is
 				 * always executes. Check error flushes the outputstream, which
@@ -130,20 +130,21 @@ public class Client {
 				 * to see if the user has exitted or asked the server to
 				 * shutdown. In any of these cases we close our streams and
 				 * exit.
-				 */
+				 
 				if ((userinput.compareTo("exit") == 0) || (userinput.compareTo("die") == 0)) {
 					System.out.println("Client exiting.");
 					stdIn.close();
 					sock.close();
 					return;
 				}
-				spitInput(in);
+				//spitInput(in);
 			}
 
 		} catch (IOException e) {
 			System.out.println("Could not read from input.");
+			e.printStackTrace();
 			return;
-		}
+		}*/
 	}
 
 	private byte[] messageToBytes(String fileName) {
@@ -164,10 +165,12 @@ public class Client {
 	}
 
 	private void encryptOnly(byte[] message) {
+		byte[] temp = new byte[message.length];
+		 System.arraycopy(message, 0, temp, 0, temp.length);
 		// get key
 		this.key = CryptoUtilities.key_from_seed(this.seed.getBytes());
 		// hash message and append hash
-		byte[] hashedMessage = CryptoUtilities.append_hash(message, key);
+		byte[] hashedMessage = CryptoUtilities.append_hash(temp, key);
 		// encrypt
 		byte[] encryptedMessage = CryptoUtilities.encrypt(hashedMessage, key);
 		
@@ -196,11 +199,12 @@ public class Client {
 	}
 
 	private void getFileNames() {
-		Scanner in = new Scanner(System.in);
+		Scanner input = new Scanner(System.in);
 		System.out.println("Enter Source File name :");
-		setInputFileName(in.next());
+		setInputFileName(input.next());
 		System.out.println("Enter Destination File name :");
-		setOutputFileName(in.next());
+		setOutputFileName(input.next());
+		input.close();
 	}
 
 	private void setOutputFileName(String next) {
@@ -276,7 +280,7 @@ public class Client {
 			FileInputStream file_in = new FileInputStream(this.inFile);
 			returnFile = new byte[file_in.available()];
 			file_in.read(returnFile);
-			file_in.close();
+			/*file_in.close();*/
 		} catch (FileNotFoundException e) {
 			System.out.println("Cant find the input file:");
 		} catch (IOException e) {

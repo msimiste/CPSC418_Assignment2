@@ -183,12 +183,12 @@ public class ServerThread extends Thread {
 				
 			}
 
-			if (messageArr != null) {
+			
 				byte[] decrypted = this.decrypt(messageArr);
 				boolean saveOk =  this.saveFile(decrypted);
 				if(saveOk){
 					sendEncryptedAck(out);
-				}
+				
 			}
 
 			// Scanner input = new Scanner(System.in);
