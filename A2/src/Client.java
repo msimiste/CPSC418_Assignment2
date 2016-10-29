@@ -16,6 +16,7 @@ public class Client {
 	private String outFile;
 	private SecretKeySpec key;
 	private int messageLength;
+	private static boolean debug;
 
 	/**
 	 * Main method, starts the client.
@@ -24,11 +25,14 @@ public class Client {
 	 *            args[0] needs to be a hostname, args[1] a port number.
 	 */
 	public static void main(String[] args) {
-		if (args.length != 2) {
+		if (args.length < 2) {
 			System.out.println("Usage: java Client hostname port#");
 			System.out.println("hostname is a string identifying your server");
 			System.out.println("port is a positive integer identifying the port to connect to the server");
 			return;
+		}
+		else if(args.length == 3){
+			setDebug(args[2]);
 		}
 
 		try {
@@ -100,6 +104,9 @@ public class Client {
 	}
 
 	private void encryptOnly(byte[] message) {
+		if(debug){
+			System.out.println("Encrypting");
+		}
 		byte[] temp = new byte[message.length];
 		System.arraycopy(message, 0, temp, 0, temp.length);
 		// get key
@@ -113,6 +120,9 @@ public class Client {
 
 	private void encryptSendMessage(OutputStream out, byte[] message) throws InterruptedException {
 
+		if(debug){
+			System.out.println("Encrypting");
+		}
 		// get key
 		this.key = CryptoUtilities.key_from_seed(this.seed.getBytes());
 		// hash message and append hash
@@ -123,7 +133,9 @@ public class Client {
 		try {
 			out.write(encryptedMessage);
 			out.flush();
-			System.out.println("Sent Bytes = " + encryptedMessage.length);
+			if(debug){
+				System.out.println("Sent Bytes = " + encryptedMessage.length);
+			}
 			Thread.sleep(100);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -141,6 +153,12 @@ public class Client {
 		input.close();
 	}
 
+	
+    private static void setDebug(String in){
+    	if(in.compareToIgnoreCase("debug")==0){
+    		debug = true;
+    	}
+    }
 	private void setOutputFileName(String next) {
 		this.outFile = next;
 	}
@@ -165,12 +183,16 @@ public class Client {
 
 		try {
 			while ((count = in.read(buf)) > 0) {
-				System.out.println("Decrypting ack message: " + count);
+				if(debug){
+					System.out.println("Decrypting ack message: " + count);
+				}
 				byte[] toBdecrypt = new byte[count];
 				System.arraycopy(buf, 0, toBdecrypt, 0, count);
 				byte[] decrypted = this.decrypt(toBdecrypt);
 				info = new String(decrypted, 0, decrypted.length);
-				System.out.println("Ack message = " + info);
+				if(debug){
+					System.out.println("Ack message = " + info);
+				}
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -198,7 +220,9 @@ public class Client {
 	}
 
 	private byte[] decrypt(byte[] toDecrypt) {
-		System.out.println("decrypting");
+		if(debug){
+			System.out.println("decrypting");
+		}
 		SecretKeySpec key = CryptoUtilities.key_from_seed(this.seed.getBytes());
 		byte[] decrypted = CryptoUtilities.decrypt(toDecrypt, key);
 		// byte[] messageHash = CryptoUtilities.extract_message(decrypted);

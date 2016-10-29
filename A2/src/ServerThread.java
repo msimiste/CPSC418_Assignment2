@@ -17,8 +17,8 @@ public class ServerThread extends Thread {
 
 	private String seed;
 	private String destFile;
-	
-	private boolean debug ;
+
+	//private boolean debug;
 	private int messageLength;
 	byte[] messageArr;
 	int briancounter = 0;
@@ -79,44 +79,32 @@ public class ServerThread extends Thread {
 
 		String s = "";
 		/* Try to read from the socket */
-		try {boolean buildArray = false;
+		try {
+			boolean buildArray = false;
 
 			inStream = new DataInputStream(sock.getInputStream());
 			out = new DataOutputStream(sock.getOutputStream());
 
-			// read the inputstream ie, the get request into a byte array
-			// byte[] buf = new byte[32767];
-			// byte[] test = new byte[32];
-			// byte[] fileBytes;
 			byte[] buf = new byte[32767];
 			int count, off = 0;
 			String info = "";
 			int byteCounter = 0;
 			System.out.println("Counts: " + briancounter++);
-			
 
-			/*
-			messageLength = inStream.readInt();
-			count  = inStream.read(buf);
-			destinationFile = new byte[count];
-			System.arraycopy(destinationFile, 0, buf, 0, count);
-			decrypt(destinationFile);*/
-			
 			while ((count = inStream.read(buf)) > 0) {
-				info="";
-				System.out.println("or here: " + count);
-				// byte[] decryptedBytes = decrypter.decryptAES(test);
+				info = "";
+				if(this.parent.getDebug()){
+					System.out.println("Gathering bytes from stream " + count);
+				}
 				byte[] decrypted = new byte[1];
 				if (!(buildArray)) {
 					byte[] toBdecrypt = new byte[count];
 					System.arraycopy(buf, 0, toBdecrypt, 0, count);
-					// byte[] decryptedBytes = decrypter.decryptAES(toBdecrypt);
 					decrypted = this.decrypt(toBdecrypt);
 					info = new String(decrypted, 0, decrypted.length);
 				}
-				System.out.println("here message: " + info);
-				System.out.println(info.contains("Display Message:"));
-				
+			
+
 				// info = new String(decryptedBytes,0,count);
 				if (info.compareTo("exit") == 0) {
 					parent.kill(this);
@@ -135,57 +123,49 @@ public class ServerThread extends Thread {
 
 				else if (info.compareTo("die") == 0) {
 					parent.killall();
-					
+
 					return;
 				} else if (info.contains("Destination File:")) {
 					int start = info.indexOf(":") + 1;
 					this.destFile = info.substring(start);
-					
-					// if(debug){
+
+					 if(parent.getDebug()){
 					System.out.println("Stored dest file:" + this.destFile);
-					// }
+					 }
 				} else if (info.contains("Message Length:")) {
-					System.out.println("here inside message: " + info);
+					 if(parent.getDebug()){
+						 System.out.println(info);
+					 }
 					int start = info.indexOf(":") + 1;
 					String mLength = info.substring(start);
 					this.messageLength = Integer.parseInt(mLength);
-					messageArr = new byte[this.messageLength];					
-					buildArray = true;					
+					messageArr = new byte[this.messageLength];
+					buildArray = true;
 				}
 
-			
-
 				else {
-					System.out.println("here inside else: " + messageArr.length);
-					int temp = count+off;
-					System.out.println("Count + off" + count + " " + off+ " " + temp );
+					 if(parent.getDebug()){
+						 System.out.println("Message Array length:  " + messageArr.length);
+					 }
+					int temp = count + off;
+					System.out.println("Count + off" + count + " " + off + " " + temp);
 					System.arraycopy(buf, 0, messageArr, off, count);
 					off += count;
 					System.out.println("Offset :" + off);
 				}
-				/*
-				 * else { //incoming = info; boolean saveOk =
-				 * this.saveFile(decrypted); if(saveOk){ sendEncryptedAck(out);
-				 * 
-				 * } }
-				 */
 
 				// Otherwise, just echo what was recieved.
-				System.out.println("Client " + idnum + ": " + incoming);
+				 if(parent.getDebug()){
+					 System.out.println("Client " + idnum + ": " + incoming);
+				 }
 
-				//byte[] temp = this.destFile.getBytes();// ("Spitting back " +
-														// incoming).getBytes();
-				//out.write(temp);
-				//out.flush();
-				
 			}
 
-			
-				byte[] decrypted = this.decrypt(messageArr);
-				boolean saveOk =  this.saveFile(decrypted);
-				if(saveOk){
-					sendEncryptedAck(out);
-				
+			byte[] decrypted = this.decrypt(messageArr);
+			boolean saveOk = this.saveFile(decrypted);
+			if (saveOk) {
+				sendEncryptedAck(out);
+
 			}
 
 			// Scanner input = new Scanner(System.in);
@@ -197,14 +177,16 @@ public class ServerThread extends Thread {
 			}
 			return;
 		} catch (Exception e1) {
-			System.out.println("Decryption issues:");			
+			System.out.println("Decryption issues:");
 			e1.printStackTrace();
 			return;
 		}
 	}
 
 	private void sendEncryptedAck(OutputStream out) {
-
+		 if(parent.getDebug()){
+			 System.out.println("Sending Acknowledgement");
+		 }
 		SecretKeySpec key = CryptoUtilities.key_from_seed(this.seed.getBytes());
 
 		byte[] temp = ("File Saved Succesfully").getBytes();
@@ -220,16 +202,18 @@ public class ServerThread extends Thread {
 	}
 
 	private byte[] decrypt(byte[] toDecrypt) {
-		System.out.println("decrypting");
+		 if(parent.getDebug()){
+			 System.out.println("decrypting");
+		 }
 		SecretKeySpec key = CryptoUtilities.key_from_seed(this.seed.getBytes());
 		byte[] decrypted = CryptoUtilities.decrypt(toDecrypt, key);
-		System.out.println("Source File: ");
+		 if(parent.getDebug()){
+			 System.out.println("Source File: ");
+		 }
 		CryptoUtil.toHexString(decrypted);
-		// byte[] messageHash = CryptoUtilities.extract_message(decrypted);
 		boolean isValid = CryptoUtilities.verify_hash(decrypted, key);
 		if (isValid) {
-			byte[] temp = CryptoUtilities.extract_message(decrypted);
-			System.out.println("Source File: ");
+			byte[] temp = CryptoUtilities.extract_message(decrypted);		
 			CryptoUtil.toHexString(temp);
 			return temp;
 		}
@@ -240,7 +224,9 @@ public class ServerThread extends Thread {
 
 	private boolean saveFile(byte[] fileToSave) {
 		boolean fileSaved = false;
-
+		 if(parent.getDebug()){
+			 System.out.println("Saving File");
+		 }
 		try {
 			FileOutputStream file_out = new FileOutputStream(this.destFile);
 			file_out.write(fileToSave);
